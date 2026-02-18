@@ -1,0 +1,1152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI审核 v2.3.3 推送规则确认单</title>
+<style>
+  /* Auth screen */
+  .auth-overlay {
+    position: fixed;
+    inset: 0;
+    background: var(--bg, #f8f9fb);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .auth-overlay.hidden { display: none; }
+  .auth-box {
+    background: #fff;
+    border-radius: 16px;
+    padding: 40px;
+    text-align: center;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08);
+    max-width: 380px;
+    width: 90%;
+  }
+  .auth-box h2 {
+    font-size: 18px;
+    margin-bottom: 6px;
+    color: #1f2937;
+  }
+  .auth-box p {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 20px;
+  }
+  .auth-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e2e6ed;
+    border-radius: 10px;
+    font-size: 15px;
+    text-align: center;
+    letter-spacing: 2px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .auth-input:focus { border-color: #1a56db; }
+  .auth-input.error { border-color: #ef4444; animation: shake 0.3s; }
+  @keyframes shake {
+    0%,100% { transform: translateX(0); }
+    25% { transform: translateX(-6px); }
+    75% { transform: translateX(6px); }
+  }
+  .auth-btn {
+    width: 100%;
+    padding: 12px;
+    margin-top: 12px;
+    background: #1a56db;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background 0.15s;
+  }
+  .auth-btn:hover { background: #1544b0; }
+  .auth-error-msg {
+    color: #ef4444;
+    font-size: 13px;
+    margin-top: 10px;
+    display: none;
+  }
+  .main-content { display: none; }
+  .main-content.visible { display: block; }
+
+  :root {
+    --primary: #1a56db;
+    --primary-light: #e8eefb;
+    --primary-hover: #1544b0;
+    --bg: #f8f9fb;
+    --card: #ffffff;
+    --border: #e2e6ed;
+    --text: #1f2937;
+    --text-secondary: #6b7280;
+    --info-bg: #f0f4ff;
+    --info-border: #c7d7fe;
+    --success: #059669;
+    --success-bg: #ecfdf5;
+    --success-border: #a7f3d0;
+    --warn: #d97706;
+    --warn-bg: #fffbeb;
+    --tag-bg: #f3f4f6;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 24px 20px 80px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 40px 0 32px;
+  }
+  .header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 12px;
+    letter-spacing: -0.02em;
+  }
+  .header .subtitle {
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  .header .badge {
+    display: inline-block;
+    background: var(--primary);
+    color: #fff;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    font-weight: 500;
+  }
+
+  /* Stats bar */
+  .stats {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+  .stat-card {
+    flex: 1;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    text-align: center;
+  }
+  .stat-card .num {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--primary);
+  }
+  .stat-card .label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  /* Progress */
+  .progress-bar {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .progress-bar .progress-text {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+  }
+  .progress-track {
+    height: 6px;
+    background: #e5e7eb;
+    border-radius: 3px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--primary);
+    border-radius: 3px;
+    transition: width 0.4s ease;
+    width: 0%;
+  }
+
+  /* Question card */
+  .question {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .question.answered {
+    border-color: var(--success);
+  }
+  .question.answered .q-header {
+    background: var(--success-bg);
+  }
+  .question.answered .q-number {
+    background: var(--success);
+  }
+
+  .q-header {
+    padding: 18px 22px;
+    background: var(--info-bg);
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+  }
+  .q-header h2 {
+    font-size: 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .q-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+  .q-count {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-left: auto;
+  }
+
+  .q-body {
+    padding: 20px 22px;
+  }
+
+  .q-context {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    padding: 12px 16px;
+    background: var(--tag-bg);
+    border-radius: 8px;
+    line-height: 1.8;
+  }
+
+  /* Info items */
+  .info-item {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .info-item .info-id {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .info-item .info-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    line-height: 1.5;
+  }
+  .info-item .info-content {
+    font-size: 13px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+  }
+  .info-item .info-tags {
+    margin-top: 8px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+  .info-tag {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--tag-bg);
+    color: var(--text-secondary);
+  }
+
+  /* Divider */
+  .q-divider {
+    border: none;
+    border-top: 1px dashed var(--border);
+    margin: 18px 0;
+  }
+
+  .q-question-text {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 14px;
+    line-height: 1.6;
+  }
+
+  /* Options */
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .option {
+    position: relative;
+    cursor: pointer;
+  }
+  .option input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .option-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    transition: all 0.15s ease;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  .option-label:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+  }
+  .option input:checked + .option-label {
+    border-color: var(--primary);
+    background: var(--primary-light);
+    box-shadow: 0 0 0 1px var(--primary);
+  }
+  .option-letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    margin-top: 1px;
+    transition: all 0.15s ease;
+  }
+  .option input:checked + .option-label .option-letter {
+    background: var(--primary);
+    border-color: var(--primary);
+    color: #fff;
+  }
+  .option-text {
+    flex: 1;
+  }
+  .option-text strong {
+    font-weight: 600;
+  }
+
+  /* Notes */
+  .notes-section {
+    margin-top: 14px;
+  }
+  .notes-section summary {
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    padding: 4px 0;
+  }
+  .notes-section summary:hover {
+    color: var(--primary);
+  }
+  .notes-section textarea {
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    line-height: 1.6;
+    resize: vertical;
+    min-height: 60px;
+    transition: border-color 0.15s;
+  }
+  .notes-section textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(26,86,219,0.1);
+  }
+
+  /* Submit area */
+  .submit-area {
+    margin-top: 36px;
+    text-align: center;
+  }
+  .submit-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 40px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    font-family: inherit;
+  }
+  .submit-btn:hover {
+    background: var(--primary-hover);
+  }
+  .submit-btn:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+  }
+  .submit-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 10px;
+  }
+
+  /* Result modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 999;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.active {
+    display: flex;
+  }
+  .modal {
+    background: #fff;
+    border-radius: 16px;
+    max-width: 600px;
+    width: 100%;
+    max-height: 85vh;
+    overflow-y: auto;
+    padding: 28px;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  }
+  .modal h3 {
+    font-size: 18px;
+    margin-bottom: 4px;
+  }
+  .modal .modal-sub {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+  }
+  .result-block {
+    background: var(--tag-bg);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: "SF Mono", "Monaco", "Menlo", monospace;
+    font-size: 13px;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin-bottom: 16px;
+    max-height: 45vh;
+    overflow-y: auto;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .modal-btn {
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: inherit;
+    border: 1px solid var(--border);
+    background: #fff;
+    transition: all 0.15s;
+  }
+  .modal-btn:hover {
+    background: var(--tag-bg);
+  }
+  .modal-btn.primary {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+  }
+  .modal-btn.primary:hover {
+    background: var(--primary-hover);
+  }
+  .copy-toast {
+    display: none;
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    z-index: 1100;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  }
+
+  @media (max-width: 640px) {
+    .container { padding: 16px 14px 60px; }
+    .stats { flex-direction: column; }
+    .header h1 { font-size: 20px; }
+    .q-body { padding: 16px; }
+    .q-header { padding: 14px 16px; }
+    .modal { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- 密码验证层 -->
+<div class="auth-overlay" id="authOverlay">
+  <div class="auth-box">
+    <h2>推送规则确认单</h2>
+    <p>请输入访问密码</p>
+    <input type="password" class="auth-input" id="authInput" placeholder="输入密码" autocomplete="off" autofocus>
+    <button class="auth-btn" onclick="checkAuth()">进入</button>
+    <div class="auth-error-msg" id="authError">密码错误，请重试</div>
+  </div>
+</div>
+
+<!-- 主内容 -->
+<div class="main-content" id="mainContent">
+<div class="container">
+  <div class="header">
+    <span class="badge">v2.3.3 全量测试</span>
+    <h1>推送规则确认单</h1>
+    <div class="subtitle">
+      AI 对 1996 条历史数据进行了全量审核，其中有 10 条应推送信息被 AI 漏掉了。<br>
+      以下 5 个问题需要您确认实际业务标准，以便我们调整 AI 的审核规则。
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat-card">
+      <div class="num">1996</div>
+      <div class="label">审核总量</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">10</div>
+      <div class="label">漏推条数</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">5</div>
+      <div class="label">待确认问题</div>
+    </div>
+    <div class="stat-card">
+      <div class="num">89.3%</div>
+      <div class="label">AI 自动审核率</div>
+    </div>
+  </div>
+
+  <div class="progress-bar">
+    <div class="progress-text">
+      <span>完成进度</span>
+      <span id="progress-label">0 / 6 题</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+  </div>
+
+  <!-- Q1 -->
+  <div class="question" data-q="q1">
+    <div class="q-header">
+      <h2>
+        <span class="q-number">1</span>
+        民企欠薪的纯网上投诉，要不要推送？
+        <span class="q-count">涉及 3 条信息</span>
+      </h2>
+    </div>
+    <div class="q-body">
+      <div class="q-context">
+        <strong>当前做法：</strong>民营企业欠薪，如果只是在网上发帖投诉（没有去政府部门现场讨薪、也没有提到政府不管），AI 判为不推送。但以下 3 条分析师原来标记为"推送"。
+      </div>
+
+      <div class="info-item">
+        <div class="info-id">信息 #1 · gs_0009</div>
+        <div class="info-title">福州闽侯的姐妹找兼职千万避雷这家店！「花间密码鲜花店」</div>
+        <div class="info-content">面试说7天学习期有工资，干了一天改口"只做7天没工资"。已投诉相关部门，在处理中。</div>
+        <div class="info-tags">
+          <span class="info-tag">个体工商户</span>
+          <span class="info-tag">纯网上发帖</span>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-id">信息 #2 · gs_0038</div>
+        <div class="info-title">厦门恒洋装修饰工程有限公司，欠工钱不给结</div>
+        <div class="info-content">厦门恒洋装饰公司欠工钱不给结。</div>
+        <div class="info-tags">
+          <span class="info-tag">民营企业</span>
+          <span class="info-tag">纯网上发帖</span>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-id">信息 #3 · gs_1027</div>
+        <div class="info-title">福建漳州三宝集团废水处理站好几个月都不发工资</div>
+        <div class="info-content">漳州三宝集团（民营钢铁企业）废水处理站欠薪，说没钱只能发一半，农民工太难了。</div>
+        <div class="info-tags">
+          <span class="info-tag">大型民企</span>
+          <span class="info-tag">多人欠薪</span>
+          <span class="info-tag">纯网上发帖</span>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <div class="q-question-text">民营企业欠薪、只在网上投诉，实际工作中怎么处理？</div>
+
+      <div class="options">
+        <label class="option">
+          <input type="radio" name="q1" value="A">
+          <div class="option-label">
+            <span class="option-letter">A</span>
+            <div class="option-text"><strong>不推送</strong> — 这类信息确实不需要推送，原来的标记偏宽，可以修正</div>
+          </div>
+        </label>
+        <label class="option">
+          <input type="radio" name="q1" value="B">
+          <div class="option-label">
+            <span class="option-letter">B</span>
+            <div class="option-text"><strong>交人工判断</strong> — 不确定要不要推，先交给人工看一眼再决定</div>
+          </div>
+        </label>
+        <label class="option">
+          <input type="radio" name="q1" value="C">
+          <div class="option-label">
+            <span class="option-letter">C</span>
+            <div class="option-text"><strong>区分情况</strong> — 大企业多人欠薪（如三宝集团）交人工判断，个体工商户（如鲜花店）不推送</div>
+          </div>
+        </label>
+      </div>
+
+      <details class="notes-section">
+        <summary>补充说明（选填）</summary>
+        <textarea name="note_q1" placeholder="如有补充意见或特殊情况，请在此说明…"></textarea>
+      </details>
+    </div>
+  </div>
+
+  <!-- Q2 -->
+  <div class="question" data-q="q2">
+    <div class="q-header">
+      <h2>
+        <span class="q-number">2</span>
+        自媒体转发违纪通报，要不要推送？
+        <span class="q-count">涉及 2 条信息</span>
+      </h2>
+    </div>
+    <div class="q-body">
+      <div class="q-context">
+        <strong>当前做法：</strong>如果信息来源是自媒体，只是简单转发了市级纪委的通报（没有加评论、没有深度解读），AI 判为不推送。但以下 2 条分析师原来标记为"推送"。两条说的是同一件事，来自不同自媒体。
+      </div>
+
+      <div class="info-item">
+        <div class="info-id">信息 #4 · gs_0046</div>
+        <div class="info-title">龙岩市纪委监委通报三起违反中央八项规定精神典型问题</div>
+        <div class="info-content">涉及龙岩市第二医院原院长卢穗万、龙雁发展集团原副总张朝阳、永定区振永建设投资集团原董事长曾雨，均违规收受礼品等，被严肃处理。</div>
+        <div class="info-tags">
+          <span class="info-tag">来源：东南沿海消息通（自媒体）</span>
+          <span class="info-tag">转发龙岩市纪委通报</span>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-id">信息 #5 · gs_1021</div>
+        <div class="info-title">龙岩3名干部，被点名通报！</div>
+        <div class="info-content">与上一条相同事件。"清风龙岩"（龙岩市纪委）发布，由今日头条"大漳州"转载。</div>
+        <div class="info-tags">
+          <span class="info-tag">来源：大漳州（今日头条自媒体）</span>
+          <span class="info-tag">转发龙岩市纪委通报</span>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <div class="q-question-text">自媒体简单转发市级纪委的违纪通报（有具体人名、有违纪事实），实际工作中怎么处理？</div>
+
+      <div class="options">
+        <label class="option">
+          <input type="radio" name="q2" value="A">
+          <div class="option-label">
+            <span class="option-letter">A</span>
+            <div class="option-text"><strong>不推送</strong> — 自媒体转发的一律不推，只关注纪委官方账号发的</div>
+          </div>
+        </label>
+        <label class="option">
+          <input type="radio" name="q2" value="B">
+          <div class="option-label">
+            <span class="option-letter">B</span>
+            <div class="option-text"><strong>区分转发内容</strong> — 转发的是违纪违法通报（有具体人名和违纪事实）→ 交人工判断；转发工作动态、廉政会议等 → 不推送</div>
+          </div>
+        </label>
+        <label class="option">
+          <input type="radio" name="q2" value="C">
+          <div class="option-label">
+            <span class="option-letter">C</span>
+            <div class="option-text"><strong>转发通报都交人工</strong> — 只要内容是纪委通报，不管内容类型，自媒体转发的都交人工看</div>
+          </div>
+        </label>
+      </div>
+
+      <details class="notes-section">
+        <summary>补充说明（选填）</summary>
+        <textarea name="note_q2" placeholder="如有补充意见或特殊情况，请在此说明…"></textarea>
+      </details>
+    </div>
+  </div>
+
+  <!-- Q3 -->
+  <div class="question" data-q="q3">
+    <div class="q-header">
+      <h2>
+        <span class="q-number">3</span>
+        泉州地区：投诉了具体部门但没写人名，要不要推送？
+        <span class="q-count">涉及 1 条信息</span>
+      </h2>
+    </div>
+    <div class="q-body">
+      <div class="q-context">
+        <strong>当前做法：</strong>泉州地区有一条特殊规则——"没有具体人名，或者投诉对象不明确的举报"不推送。AI 按"没有具体人名"把下面这条排除了。
+      </div>
+
+      <div class="info-item">
+        <div class="info-id">信息 #6 · gs_0025</div>
+        <div class="info-title">虎邱镇政府最无作为</div>
+        <div class="info-content">#安溪县人力资源局 #安溪信访 #安溪综治中心 #安溪县政府 #虎邱镇政府<br><br>这条信息没有写具体某个人的名字，但明确@了 5 个政府部门，投诉政府不作为。</div>
+        <div class="info-tags">
+          <span class="info-tag">泉州安溪县</span>
+          <span class="info-tag">无具体人名</span>
+          <span class="info-tag">指向明确（5个具体部门）</span>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <div class="q-question-text">泉州的排除规则，原意是哪种？</div>
+
+      <div class="options">
+        <label class="option">
+          <input type="radio" name="q3" value="A">
+          <div class="option-label">
+            <span class="option-letter">A</span>
+            <div class="option-text"><strong>没写人名就排除</strong> — 只要没有指名道姓某个人，就不推送。即使投诉了具体部门也排除</div>
+          </div>
+        </label>
+        <label class="option">
+          <input type="radio" name="q3" value="B">
+          <div class="option-label">
+            <span class="option-letter">B</span>
+            <div class="option-text"><strong>投诉对象不明确才排除</strong> — 必须是"不知道投诉谁"的情况才排除。像这条明确指向了虎邱镇政府和多个部门，应该推送</div>
+          </div>
+        </label>
+      </div>
+
+      <details class="notes-section">
+        <summary>补充说明（选填）</summary>
+        <textarea name="note_q3" placeholder="如有补充意见或特殊情况，请在此说明…"></textarea>
+      </details>
+    </div>
+  </div>
+
+  <!-- Q4 -->
+  <div class="question" data-q="q4">
+    <div class="q-header">
+      <h2>
+        <span class="q-number">4</span>
+        食品安全的正面报道，要不要推送？
+        <span class="q-count">涉及 2 条信息</span>
+      </h2>
+    </div>
+    <div class="q-body">
+      <div class="q-context">
+        <strong>当前做法：</strong>政府正常执法的正面报道一般不推送，除非涉及"群众身边不正之风和腐败问题集中整治"（其中包括"制售假劣食品整治"）。以下 2 条是食品安全监管的正面报道，AI 判为不推送。
+      </div>
+
+      <div class="info-item">
+        <div class="info-id">信息 #7 · gs_0043</div>
+        <div class="info-title">一线问需 靶向诊疗 福见食安共治共享</div>
+        <div class="info-content">省市场监管局深入基层与产业一线，探索"抽检+"食品安全共治共享路径。强化基层监管能力、回应消费者关切；帮扶企业、聚焦特色产业。</div>
+        <div class="info-tags">
+          <span class="info-tag">省市场监管局</span>
+          <span class="info-tag">食品安全常规监管</span>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-id">信息 #8 · gs_1035</div>
+        <div class="info-title">严把年货关！市场监管开展多种专项检查 让消费者不花冤枉钱</div>
+        <div class="info-content">市场监管总局在全国开展食品安全"年货你点我检"专项活动，抽检合格率 98.12%。福建春节前抽检 700 批次，合格率超 99%。</div>
+        <div class="info-tags">
+          <span class="info-tag">央视新闻</span>
+          <span class="info-tag">食品安全专项检查</span>
+          <span class="info-tag">全国+福建</span>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <div class="q-question-text">食品安全的正面监管报道，实际工作中怎么处理？</div>
+
+      <div class="options">
+        <label class="option">
+          <input type="radio" name="q4" value="A">
+          <div class="option-label">
+            <span class="option-letter">A</span>
+            <div class="option-text"><strong>不推送</strong> — 常规食品安全抽检属于"正常执法正面报道"，不推送。只有打击制售假劣食品的专项整治才推送</div>
+          </div>
+        </label>
+        <label class="option">
+          <input type="radio" name="q4" value="B">
+          <div class="option-label">
+            <span class="option-letter">B</span>
+            <div class="option-text"><strong>都推送</strong> — 只要涉及食品安全的政府监管报道，不管是常规抽检还是专项整治，都推送</div>
+          </div>
+        </label>
+        <label class="option">
+          <input type="radio" name="q4" value="C">
+          <div class="option-label">
+            <span class="option-letter">C</span>
+            <div class="option-text"><strong>看类型</strong> — 有"专项检查""集中整治"字眼的食品安全报道推送，日常工作报道不推</div>
+          </div>
+        </label>
+      </div>
+
+      <details class="notes-section">
+        <summary>补充说明（选填）</summary>
+        <textarea name="note_q4" placeholder="如有补充意见或特殊情况，请在此说明…"></textarea>
+      </details>
+    </div>
+  </div>
+
+  <!-- Q5 -->
+  <div class="question" data-q="q5">
+    <div class="q-header">
+      <h2>
+        <span class="q-number">5</span>
+        市级巡察和市级纪委执法行动，要不要推送？
+        <span class="q-count">涉及 2 条信息</span>
+      </h2>
+    </div>
+    <div class="q-body">
+      <div class="q-context">
+        <strong>当前做法：</strong>市县级巡察的整改通报 → 不推送；市级纪委的工作会议、工作部署 → 不推送。以下 2 条被 AI 归入这些类别后不推送，但分析师原来标记为推送。
+      </div>
+
+      <div class="info-item">
+        <div class="info-id">信息 #9 · gs_0048</div>
+        <div class="info-title">福建一市委巡察组，收到反映一些领导干部的问题线索</div>
+        <div class="info-content">龙岩市委 7 个巡察组完成对 19 个单位的第八轮巡察反馈。巡察组收到的问题线索已移交处理。<br><br><strong>注意：</strong>这条说的不是"整改进展"，而是巡察组收到了领导干部的问题线索。AI 把它归入了"市级巡察整改"。</div>
+        <div class="info-tags">
+          <span class="info-tag">龙岩市委巡察</span>
+          <span class="info-tag">发现问题线索</span>
+          <span class="info-tag">来源：观八闽、清风龙岩</span>
+        </div>
+      </div>
+
+      <div class="info-item">
+        <div class="info-id">信息 #10 · gs_0055</div>
+        <div class="info-title">福州市纪委监委开展节前集中式监督执纪执法活动</div>
+        <div class="info-content">市纪委监委运用"1+X+Y"监督机制，重点纠治"四风"问题。各纪检监察组在文旅、农业、民生等领域展开监督。<br><br><strong>注意：</strong>这条说的不是开会或部署，而是实际的监督执纪执法行动。AI 把它归入了"市级纪委工作动态"。</div>
+        <div class="info-tags">
+          <span class="info-tag">福州市纪委监委</span>
+          <span class="info-tag">实际执法行动</span>
+          <span class="info-tag">纠治"四风"</span>
+        </div>
+      </div>
+
+      <hr class="q-divider">
+
+      <div class="q-question-text">5a. 市级巡察的哪些信息需要推送？</div>
+
+      <div class="options" style="margin-bottom: 20px;">
+        <label class="option">
+          <input type="radio" name="q5a" value="A">
+          <div class="option-label">
+            <span class="option-letter">A</span>
+            <div class="option-text"><strong>市县级巡察一律不推</strong> — 不管是整改通报还是发现问题线索，都不推送</div>
+          </div>
+        </label>
+        <label class="option">
+          <input type="radio" name="q5a" value="B">
+          <div class="option-label">
+            <span class="option-letter">B</span>
+            <div class="option-text"><strong>区分内容</strong> — 巡察发现问题线索、反馈重大问题 → 交人工判断；整改进展通报 → 不推送</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="q-question-text">5b. 市级纪委的"实际执法行动"和"开会/部署"要不要区分？</div>
+
+      <div class="options">
+        <label class="option">
+          <input type="radio" name="q5b" value="A">
+          <div class="option-label">
+            <span class="option-letter">A</span>
+            <div class="option-text"><strong>不区分</strong> — 市级纪委的所有正面/中性信息（含执法行动）都不推送</div>
+          </div>
+        </label>
+        <label class="option">
+          <input type="radio" name="q5b" value="B">
+          <div class="option-label">
+            <span class="option-letter">B</span>
+            <div class="option-text"><strong>区分</strong> — 开会、部署、廉政会议、述责述廉 → 不推送；实际的监督执纪执法行动 → 交人工判断</div>
+          </div>
+        </label>
+      </div>
+
+      <details class="notes-section">
+        <summary>补充说明（选填）</summary>
+        <textarea name="note_q5" placeholder="如有补充意见或特殊情况，请在此说明…"></textarea>
+      </details>
+    </div>
+  </div>
+
+  <!-- Submit -->
+  <div class="submit-area">
+    <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+      提交确认结果
+    </button>
+    <div class="submit-hint">提交后会生成确认结果摘要，可复制发送</div>
+  </div>
+</div>
+
+<!-- Result Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal">
+    <h3>确认结果</h3>
+    <div class="modal-sub">以下是您的确认摘要，可复制后发送给技术团队。</div>
+    <div class="result-block" id="resultText"></div>
+    <div class="modal-actions">
+      <button class="modal-btn" onclick="closeModal()">关闭</button>
+      <button class="modal-btn primary" onclick="copyResult()">复制结果</button>
+    </div>
+  </div>
+</div>
+
+<div class="copy-toast" id="toast">已复制到剪贴板</div>
+</div><!-- end main-content -->
+
+<script>
+// === 密码验证 ===
+// SHA-256 hash of password (不在前端暴露明文密码)
+const PASS_HASH = 'c0f102c4887967e063c3bfbe3fe1d7a4cdca5fa26372b6058587548d3103d626';
+
+async function sha256(text) {
+  const data = new TextEncoder().encode(text);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function checkAuth() {
+  const input = document.getElementById('authInput');
+  const hash = await sha256(input.value);
+  if (hash === PASS_HASH) {
+    document.getElementById('authOverlay').classList.add('hidden');
+    document.getElementById('mainContent').classList.add('visible');
+    sessionStorage.setItem('auth', '1');
+  } else {
+    input.classList.add('error');
+    document.getElementById('authError').style.display = 'block';
+    setTimeout(() => { input.classList.remove('error'); }, 300);
+  }
+}
+
+// Enter 键提交
+document.getElementById('authInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') checkAuth();
+});
+
+// Session 保持（刷新不用重新输入）
+if (sessionStorage.getItem('auth') === '1') {
+  document.getElementById('authOverlay').classList.add('hidden');
+  document.getElementById('mainContent').classList.add('visible');
+}
+</script>
+
+<script>
+const QUESTIONS = ['q1','q2','q3','q4','q5a','q5b'];
+const TOTAL = QUESTIONS.length;
+
+const LABELS = {
+  q1: '问题1：民企纯网上欠薪投诉',
+  q2: '问题2：自媒体转发违纪通报',
+  q3: '问题3：泉州-有部门无人名的投诉',
+  q4: '问题4：食品安全正面报道',
+  q5a: '问题5a：市级巡察发现问题 vs 整改通报',
+  q5b: '问题5b：市级纪委执法行动 vs 开会部署'
+};
+
+const OPTIONS = {
+  q1: { A:'不推送，修正原标记', B:'交人工判断', C:'按企业规模区分' },
+  q2: { A:'不推送，只看官方账号', B:'区分转发内容（违纪→人工，动态→不推）', C:'转发通报都交人工' },
+  q3: { A:'没写人名就排除', B:'投诉对象不明确才排除' },
+  q4: { A:'不推送（仅制售假劣才推）', B:'都推送', C:'有"专项检查"字眼的推' },
+  q5a: { A:'市县级巡察一律不推', B:'区分：问题线索→人工，整改→不推' },
+  q5b: { A:'不区分，一律不推', B:'区分：执法行动→人工，会议部署→不推' }
+};
+
+const IDS = {
+  q1: 'gs_0009, gs_0038, gs_1027',
+  q2: 'gs_0046, gs_1021',
+  q3: 'gs_0025',
+  q4: 'gs_0043, gs_1035',
+  q5a: 'gs_0048',
+  q5b: 'gs_0055'
+};
+
+// Listen for changes
+document.querySelectorAll('input[type="radio"]').forEach(radio => {
+  radio.addEventListener('change', () => {
+    updateProgress();
+    // Mark parent question as answered
+    const qName = radio.name;
+    const qEl = radio.closest('.question');
+    if (qEl) qEl.classList.add('answered');
+    // For q5, check both sub-questions
+    if (qName === 'q5a' || qName === 'q5b') {
+      const a = document.querySelector('input[name="q5a"]:checked');
+      const b = document.querySelector('input[name="q5b"]:checked');
+      const q5El = document.querySelector('.question[data-q="q5"]');
+      if (a && b) q5El.classList.add('answered');
+      else q5El.classList.remove('answered');
+    }
+  });
+});
+
+function updateProgress() {
+  let answered = 0;
+  QUESTIONS.forEach(q => {
+    if (document.querySelector(`input[name="${q}"]:checked`)) answered++;
+  });
+  document.getElementById('progress-label').textContent = `${answered} / ${TOTAL} 题`;
+  document.getElementById('progress-fill').style.width = `${(answered/TOTAL)*100}%`;
+}
+
+function submitForm() {
+  // Check all answered
+  let missing = [];
+  QUESTIONS.forEach(q => {
+    if (!document.querySelector(`input[name="${q}"]:checked`)) {
+      missing.push(LABELS[q]);
+    }
+  });
+
+  if (missing.length > 0) {
+    alert('以下问题还未选择：\n\n' + missing.join('\n'));
+    return;
+  }
+
+  // Build result
+  let lines = [];
+  lines.push('═══════════════════════════════════════');
+  lines.push('  AI审核 v2.3.3 推送规则确认结果');
+  lines.push('  确认时间：' + new Date().toLocaleString('zh-CN'));
+  lines.push('═══════════════════════════════════════');
+  lines.push('');
+
+  QUESTIONS.forEach(q => {
+    const val = document.querySelector(`input[name="${q}"]:checked`).value;
+    const noteEl = document.querySelector(`textarea[name="note_${q.replace(/[ab]$/,'')}"]`);
+    const note = noteEl ? noteEl.value.trim() : '';
+
+    lines.push(`${LABELS[q]}`);
+    lines.push(`  涉及信息：${IDS[q]}`);
+    lines.push(`  选择：${val} - ${OPTIONS[q][val]}`);
+    if (note) lines.push(`  补充说明：${note}`);
+    lines.push('');
+  });
+
+  lines.push('═══════════════════════════════════════');
+
+  document.getElementById('resultText').textContent = lines.join('\n');
+  document.getElementById('modal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+}
+
+function copyResult() {
+  const text = document.getElementById('resultText').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const toast = document.getElementById('toast');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 2000);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    const toast = document.getElementById('toast');
+    toast.style.display = 'block';
+    setTimeout(() => { toast.style.display = 'none'; }, 2000);
+  });
+}
+
+// Close modal on overlay click
+document.getElementById('modal').addEventListener('click', (e) => {
+  if (e.target === document.getElementById('modal')) closeModal();
+});
+</script>
+
+</body>
+</html>
